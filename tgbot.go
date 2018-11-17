@@ -30,6 +30,53 @@ func SendMsg(bot *tgbotapi.BotAPI, chatId int, text string) {
 }
 
 func AnswerInlineQuery(bot *tgbotapi.BotAPI, inlineQueryID string, results *[]contracts.Result) {
+	retryCount := 0
+	parseMode := "Markdown"
+	for {
+		if retryCount > 1 {
+			break
+		}
+
+		inlineConf := createInlineQueryResult(inlineQueryID, results, parseMode)
+		if _, err := bot.AnswerInlineQuery(*inlineConf); err != nil {
+			log.Println(err)
+			if strings.Contains(err.Error(), "Bad Request: can't parse entities") {
+				log.Printf("failed to parse result in markdown for query %s. retrying without markdown..\n", inlineQueryID)
+				parseMode = ""
+				retryCount++
+				continue
+			}
+			bot.AnswerInlineQuery(inlineQueryErrorConf(inlineQueryID))
+		}
+
+		if retryCount > 0 {
+			log.Println("retry completed for query", inlineQueryID)
+		}
+		break
+	}
+}
+
+func inlineQueryErrorConf(inlineQueryID string) tgbotapi.InlineConfig {
+	article := tgbotapi.InlineQueryResultArticle{
+		Type:        "article",
+		ID:          inlineQueryID,
+		Title:       "Internal error",
+		Description: "Whoops! Something went wrong. Please try again :)",
+		InputMessageContent: tgbotapi.InputTextMessageContent{
+			Text:                  "`luxtagbot internal error: please try again.`",
+			ParseMode:             "Markdown",
+			DisableWebPagePreview: true,
+		},
+	}
+	return tgbotapi.InlineConfig{
+		InlineQueryID: inlineQueryID,
+		IsPersonal:    true,
+		CacheTime:     100,
+		Results:       []interface{}{article},
+	}
+}
+
+func createInlineQueryResult(inlineQueryID string, results *[]contracts.Result, parseMode string) *tgbotapi.InlineConfig {
 	articles := make([]interface{}, len(*results))
 	for i, result := range *results {
 		text := result.Text
@@ -49,44 +96,18 @@ func AnswerInlineQuery(bot *tgbotapi.BotAPI, inlineQueryID string, results *[]co
 			Description: util.EscapeMarkdown(util.Truncate(result.Description, "")),
 			InputMessageContent: tgbotapi.InputTextMessageContent{
 				Text:                  text,
-				ParseMode:             "Markdown",
+				ParseMode:             parseMode,
 				DisableWebPagePreview: true,
 			},
 		}
 	}
 
-	inlineConf := tgbotapi.InlineConfig{
+	inlineConf := &tgbotapi.InlineConfig{
 		InlineQueryID: inlineQueryID,
 		IsPersonal:    true,
 		CacheTime:     15,
 		Results:       articles,
 	}
 
-	if _, err := bot.AnswerInlineQuery(inlineConf); err != nil {
-		log.Println(err)
-		if strings.Contains(err.Error(), "Bad Request: can't parse entities") {
-			log.Printf("results: %v\n", inlineConf.Results)
-		}
-		bot.AnswerInlineQuery(inlineQueryErrorConf(inlineQueryID))
-	}
-}
-
-func inlineQueryErrorConf(inlineQueryID string) tgbotapi.InlineConfig {
-	article := tgbotapi.InlineQueryResultArticle{
-		Type:        "article",
-		ID:          inlineQueryID,
-		Title:       "Internal error",
-		Description: "Whoops! Something went wrong. Please try again :)",
-		InputMessageContent: tgbotapi.InputTextMessageContent{
-			Text:                  "Internal error: please try again.",
-			ParseMode:             "Markdown",
-			DisableWebPagePreview: true,
-		},
-	}
-	return tgbotapi.InlineConfig{
-		InlineQueryID: inlineQueryID,
-		IsPersonal:    true,
-		CacheTime:     100,
-		Results:       []interface{}{article},
-	}
+	return inlineConf
 }
