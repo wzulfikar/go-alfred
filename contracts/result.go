@@ -7,5 +7,5 @@ type Result struct {
 	Text        string
 	URL         string
 	ThumbURL    string
-	DriverName  string
+	FinderName  string
 }

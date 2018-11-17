@@ -7,27 +7,27 @@ import (
 	"github.com/wzulfikar/alfred/contracts"
 )
 
-func Find(query string, maxQueryResult int, drivers *[]contracts.Driver) (*[]contracts.Result, error) {
+func Find(query string, maxQueryResult int, finders *[]contracts.Finder) (*[]contracts.Result, error) {
 	var wg sync.WaitGroup
-	wg.Add(len(*drivers))
+	wg.Add(len(*finders))
 
-	results := make([][]contracts.Result, len(*drivers))
-	for i, driver := range *drivers {
-		go func(i int, driver contracts.Driver, query string, results *[][]contracts.Result, wg *sync.WaitGroup) {
+	results := make([][]contracts.Result, len(*finders))
+	for i, finder := range *finders {
+		go func(i int, finder contracts.Finder, query string, results *[][]contracts.Result, wg *sync.WaitGroup) {
 			defer wg.Done()
-			driverName := driver.DriverName()
-			result, err := driver.Find(query)
+			finderName := finder.FinderName()
+			result, err := finder.Find(query)
 			if err != nil {
-				log.Printf("error fetching data from driver '%s': %s\n", driverName, err)
+				log.Printf("error fetching data from finder '%s': %s\n", finderName, err)
 				return
 			}
-			log.Printf("%d data fetched from driver '%s'\n", len(*result), driverName)
+			log.Printf("%d data fetched from finder '%s'\n", len(*result), finderName)
 			(*results)[i] = *result
-		}(i, driver, query, &results, &wg)
+		}(i, finder, query, &results, &wg)
 	}
 	wg.Wait()
 
-	log.Printf("finished fetching results from %d drivers\n", len(*drivers))
+	log.Printf("finished fetching results from %d finders\n", len(*finders))
 
 	counter := 0
 	combinedResults := &[]contracts.Result{}

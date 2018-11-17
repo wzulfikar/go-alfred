@@ -15,24 +15,24 @@ import (
 const logoUrl = "http://logobucket.surge.sh/services/trello-logo-md.png"
 const baseUrl = "https://api.trello.com"
 
-type TrelloDriver struct {
+type TrelloFinder struct {
 	Key   string
 	Token string
 }
 
-func (driver *TrelloDriver) DriverName() string {
+func (finder *TrelloFinder) FinderName() string {
 	return "trello"
 }
 
-func (driver *TrelloDriver) Find(query string) (*[]contracts.Result, error) {
+func (finder *TrelloFinder) Find(query string) (*[]contracts.Result, error) {
 	log.Println("fetching cards from trello..")
 
 	var client = &http.Client{}
 	endpoint := fmt.Sprintf("%s/1/search?query=%s&key=%s&token=%s",
 		baseUrl,
 		url.QueryEscape(query),
-		driver.Key,
-		driver.Token)
+		finder.Key,
+		finder.Token)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
 	resp, err := client.Do(req)
@@ -60,7 +60,7 @@ func (driver *TrelloDriver) Find(query string) (*[]contracts.Result, error) {
 			Description: card.Desc,
 			URL:         card.ShortURL,
 			ThumbURL:    logoUrl,
-			DriverName:  driver.DriverName(),
+			FinderName:  finder.FinderName(),
 		}
 
 		r.Text = fmt.Sprintf("*%s*\n%s\n\n––\nView in Trello:\n%s",

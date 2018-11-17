@@ -14,7 +14,7 @@ import (
 
 const logo = "http://logobucket.surge.sh/services/youtrack-logo-md.png"
 
-type YoutrackDriver struct {
+type YoutrackFinder struct {
 	BaseUrl string
 	Token   string
 	Fields  string
@@ -22,27 +22,27 @@ type YoutrackDriver struct {
 
 const defaultFields = "id,summary,description,updated,created,votes,numberInProject,project(shortName),tags(name)"
 
-func (driver *YoutrackDriver) DriverName() string {
+func (finder *YoutrackFinder) FinderName() string {
 	return "youtrack"
 }
 
-func (driver *YoutrackDriver) issueUrl(projectShortName string, numberInProject int) string {
-	return fmt.Sprintf("%s/issue/%s-%d", driver.BaseUrl, projectShortName, numberInProject)
+func (finder *YoutrackFinder) issueUrl(projectShortName string, numberInProject int) string {
+	return fmt.Sprintf("%s/issue/%s-%d", finder.BaseUrl, projectShortName, numberInProject)
 }
 
-func (driver *YoutrackDriver) Find(query string) (*[]contracts.Result, error) {
+func (finder *YoutrackFinder) Find(query string) (*[]contracts.Result, error) {
 	log.Println("fetching issue from youtrack..")
 
 	var client = &http.Client{}
 
-	fields := driver.Fields
+	fields := finder.Fields
 	if fields == "" {
 		fields = defaultFields
 	}
 
-	endpoint := fmt.Sprintf("%s/api/issues/?query=%s&fields=%s", driver.BaseUrl, url.QueryEscape(query), fields)
+	endpoint := fmt.Sprintf("%s/api/issues/?query=%s&fields=%s", finder.BaseUrl, url.QueryEscape(query), fields)
 	req, err := http.NewRequest("GET", endpoint, nil)
-	req.Header.Add("Authorization", "Bearer "+driver.Token)
+	req.Header.Add("Authorization", "Bearer "+finder.Token)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -72,9 +72,9 @@ func (driver *YoutrackDriver) Find(query string) (*[]contracts.Result, error) {
 			ID:          issue.ID,
 			Title:       title,
 			Description: issue.Description,
-			URL:         driver.issueUrl(issue.Project.ShortName, issue.NumberInProject),
+			URL:         finder.issueUrl(issue.Project.ShortName, issue.NumberInProject),
 			ThumbURL:    logo,
-			DriverName:  driver.DriverName(),
+			FinderName:  finder.FinderName(),
 		}
 
 		// add book icon to signify knowledge cards.
