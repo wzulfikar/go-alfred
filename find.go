@@ -57,8 +57,6 @@ func Find(query string, maxQueryResult int, finders *[]contracts.Finder) (*[]con
 		}
 	}
 
-	close(finderChan)
-
 	// display "Not found" indicator when there's no item found
 	if len(*combinedResults) == 0 {
 		noResultIdentifier := contracts.Result{
