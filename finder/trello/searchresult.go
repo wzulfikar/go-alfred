@@ -1,5 +1,5 @@
 package trello
 
-type Result struct {
+type SearchResult struct {
 	Cards []Card `json:"cards"`
 }

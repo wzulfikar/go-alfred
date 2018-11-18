@@ -1,4 +1,4 @@
-package trello
+package twitter
 
 import (
 	"encoding/json"
@@ -13,7 +13,7 @@ import (
 	"github.com/wzulfikar/alfred/util"
 )
 
-const finderName = "trello_v1"
+const finderName = "twitter_v1"
 const baseUrl = "https://api.trello.com"
 const logoUrl = "http://logobucket.surge.sh/services/trello-logo-md.png"
 
@@ -27,8 +27,6 @@ func (finder *TrelloFinder) FinderName() string {
 }
 
 func (finder *TrelloFinder) Find(query string) (*[]contracts.Result, error) {
-	log.Println("fetching cards from trello..")
-
 	endpoint := fmt.Sprintf("%s/1/search?query=%s&key=%s&token=%s",
 		baseUrl,
 		url.QueryEscape(query),

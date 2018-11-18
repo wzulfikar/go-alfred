@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/pkg/errors"
 	"github.com/wzulfikar/alfred/contracts"
 	"github.com/wzulfikar/alfred/util"
 )
 
+const finderName = "youtrack_v1"
 const logo = "http://logobucket.surge.sh/services/youtrack-logo-md.png"
 
 type YoutrackFinder struct {
@@ -23,7 +25,7 @@ type YoutrackFinder struct {
 const defaultFields = "id,summary,description,updated,created,votes,numberInProject,project(shortName),tags(name)"
 
 func (finder *YoutrackFinder) FinderName() string {
-	return "youtrack"
+	return finderName
 }
 
 func (finder *YoutrackFinder) issueUrl(projectShortName string, numberInProject int) string {
@@ -33,36 +35,38 @@ func (finder *YoutrackFinder) issueUrl(projectShortName string, numberInProject 
 func (finder *YoutrackFinder) Find(query string) (*[]contracts.Result, error) {
 	log.Println("fetching issue from youtrack..")
 
-	var client = &http.Client{}
-
 	fields := finder.Fields
 	if fields == "" {
 		fields = defaultFields
 	}
 
-	endpoint := fmt.Sprintf("%s/api/issues/?query=%s&fields=%s", finder.BaseUrl, url.QueryEscape(query), fields)
-	req, err := http.NewRequest("GET", endpoint, nil)
+	endpoint := fmt.Sprintf("%s/api/issues/?query=%s&fields=%s",
+		finder.BaseUrl,
+		url.QueryEscape(query),
+		fields)
+
+	req, _ := http.NewRequest("GET", endpoint, nil)
 	req.Header.Add("Authorization", "Bearer "+finder.Token)
 
-	resp, err := client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, finderName)
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, finderName)
 	}
 
-	issues := &[]Issue{}
-	if err := json.Unmarshal(body, issues); err != nil {
+	searchResult := &SearchResult{}
+	if err := json.Unmarshal(body, searchResult); err != nil {
 		log.Println("failed to unmarshal body:", string(body))
-		return nil, err
+		return nil, errors.Wrap(err, finderName)
 	}
 
 	alfredResult := []contracts.Result{}
-	for _, issue := range *issues {
+	for _, issue := range *searchResult {
 		title := fmt.Sprintf("[%s-%d] %s",
 			issue.Project.ShortName,
 			issue.NumberInProject,
