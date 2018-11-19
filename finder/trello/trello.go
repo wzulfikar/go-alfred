@@ -63,7 +63,7 @@ func (finder *TrelloFinder) Find(query string) (*[]contracts.Result, error) {
 		}
 
 		if r.Description == "" {
-			r.Description = "(Not set)"
+			r.Description = "(No description)"
 		}
 
 		r.Text = fmt.Sprintf("`Trello Card`\n*%s*\n%s\n\n––\nOpen in browser:\n%s",
