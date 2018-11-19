@@ -11,16 +11,15 @@ type Event struct {
 	Title          string      `json:"title"`
 	Who            string      `json:"who"`
 	Location       string      `json:"location"`
-	Notes          interface{} `json:"notes"`
+	Notes          string      `json:"notes"`
 	Version        string      `json:"version"`
 	Readonly       bool        `json:"readonly"`
 	Tz             interface{} `json:"tz"`
-	StartDt        string      `json:"start_dt"`
-	EndDt          string      `json:"end_dt"`
+	StartDt        DateTime    `json:"start_dt"`
+	EndDt          DateTime    `json:"end_dt"`
 	RistartDt      interface{} `json:"ristart_dt"`
 	RsstartDt      interface{} `json:"rsstart_dt"`
-	CreationDt     string      `json:"creation_dt"`
-	UpdateDt       *string     `json:"update_dt"`
+	CreationDt     DateTime    `json:"creation_dt"`
+	UpdateDt       *DateTime   `json:"update_dt"`
 	DeleteDt       interface{} `json:"delete_dt"`
-	Custom         Custom      `json:"custom"`
 }
