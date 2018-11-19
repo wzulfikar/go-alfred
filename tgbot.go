@@ -81,7 +81,7 @@ func createInlineQueryResult(inlineQueryID string, results *[]contracts.Result, 
 	for i, result := range *results {
 		text := result.Text
 		if text == "" {
-			text = fmt.Sprintf("*%s*\n%s\n\n––\nLink:\n%s",
+			text = fmt.Sprintf("*%s*\n%s\n\n––\nOpen in browser:\n%s",
 				result.Title,
 				util.Truncate(util.EscapeMarkdown(result.Description), "...\\[redacted]"),
 				result.URL)

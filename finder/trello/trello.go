@@ -27,8 +27,6 @@ func (finder *TrelloFinder) FinderName() string {
 }
 
 func (finder *TrelloFinder) Find(query string) (*[]contracts.Result, error) {
-	log.Println("fetching cards from trello..")
-
 	endpoint := fmt.Sprintf("%s/1/search?query=%s&key=%s&token=%s",
 		baseUrl,
 		url.QueryEscape(query),
@@ -47,30 +45,34 @@ func (finder *TrelloFinder) Find(query string) (*[]contracts.Result, error) {
 		return nil, errors.Wrap(err, finderName)
 	}
 
-	result := &SearchResult{}
-	if err := json.Unmarshal(body, result); err != nil {
+	searchResult := &SearchResult{}
+	if err := json.Unmarshal(body, searchResult); err != nil {
 		log.Println("failed to unmarshal body:", string(body))
 		return nil, errors.Wrap(err, finderName)
 	}
 
-	alfredResult := []contracts.Result{}
-	for _, card := range result.Cards {
+	result := []contracts.Result{}
+	for _, card := range searchResult.Cards {
 		r := contracts.Result{
 			ID:          card.ID,
 			Title:       card.Name,
 			Description: card.Desc,
 			URL:         card.ShortURL,
 			ThumbURL:    logoUrl,
-			FinderName:  finder.FinderName(),
+			FinderName:  finderName,
 		}
 
-		r.Text = fmt.Sprintf("*%s*\n%s\n\n––\nView in Trello:\n%s",
+		if r.Description == "" {
+			r.Description = "(Not set)"
+		}
+
+		r.Text = fmt.Sprintf("`Trello Card`\n*%s*\n%s\n\n––\nOpen in browser:\n%s",
 			r.Title,
 			util.Truncate(util.EscapeMarkdown(r.Description), "...\\[redacted]"),
 			r.URL)
 
-		alfredResult = append(alfredResult, r)
+		result = append(result, r)
 	}
 
-	return &alfredResult, nil
+	return &result, nil
 }

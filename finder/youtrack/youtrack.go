@@ -33,8 +33,6 @@ func (finder *YoutrackFinder) issueUrl(projectShortName string, numberInProject 
 }
 
 func (finder *YoutrackFinder) Find(query string) (*[]contracts.Result, error) {
-	log.Println("fetching issue from youtrack..")
-
 	fields := finder.Fields
 	if fields == "" {
 		fields = defaultFields
@@ -65,7 +63,7 @@ func (finder *YoutrackFinder) Find(query string) (*[]contracts.Result, error) {
 		return nil, errors.Wrap(err, finderName)
 	}
 
-	alfredResult := []contracts.Result{}
+	result := []contracts.Result{}
 	for _, issue := range *searchResult {
 		title := fmt.Sprintf("[%s-%d] %s",
 			issue.Project.ShortName,
@@ -78,7 +76,7 @@ func (finder *YoutrackFinder) Find(query string) (*[]contracts.Result, error) {
 			Description: issue.Description,
 			URL:         finder.issueUrl(issue.Project.ShortName, issue.NumberInProject),
 			ThumbURL:    logo,
-			FinderName:  finder.FinderName(),
+			FinderName:  finderName,
 		}
 
 		// add book icon to signify knowledge cards.
@@ -89,13 +87,17 @@ func (finder *YoutrackFinder) Find(query string) (*[]contracts.Result, error) {
 			}
 		}
 
-		r.Text = fmt.Sprintf("*%s*\n%s\n\n––\nView in YouTrack:\n%s",
+		if r.Description == "" {
+			r.Description = "(Not set)"
+		}
+
+		r.Text = fmt.Sprintf("`Youtrack Issue`\n*%s*\n%s\n\n––\nOpen in browser:\n%s",
 			r.Title,
 			util.Truncate(util.EscapeMarkdown(r.Description), "...\\[redacted]"),
 			r.URL)
 
-		alfredResult = append(alfredResult, r)
+		result = append(result, r)
 	}
 
-	return &alfredResult, nil
+	return &result, nil
 }

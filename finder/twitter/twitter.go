@@ -45,13 +45,13 @@ func (finder *TrelloFinder) Find(query string) (*[]contracts.Result, error) {
 		return nil, errors.Wrap(err, finderName)
 	}
 
-	result := &SearchResult{}
-	if err := json.Unmarshal(body, result); err != nil {
+	searchResult := &SearchResult{}
+	if err := json.Unmarshal(body, searchResult); err != nil {
 		log.Println("failed to unmarshal body:", string(body))
 		return nil, errors.Wrap(err, finderName)
 	}
 
-	alfredResult := []contracts.Result{}
+	result := []contracts.Result{}
 	for _, card := range result.Cards {
 		r := contracts.Result{
 			ID:          card.ID,
@@ -59,7 +59,7 @@ func (finder *TrelloFinder) Find(query string) (*[]contracts.Result, error) {
 			Description: card.Desc,
 			URL:         card.ShortURL,
 			ThumbURL:    logoUrl,
-			FinderName:  finder.FinderName(),
+			FinderName:  finderName,
 		}
 
 		r.Text = fmt.Sprintf("*%s*\n%s\n\n––\nView in Trello:\n%s",
@@ -67,8 +67,8 @@ func (finder *TrelloFinder) Find(query string) (*[]contracts.Result, error) {
 			util.Truncate(util.EscapeMarkdown(r.Description), "...\\[redacted]"),
 			r.URL)
 
-		alfredResult = append(alfredResult, r)
+		result = append(result, r)
 	}
 
-	return &alfredResult, nil
+	return &result, nil
 }
