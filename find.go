@@ -7,6 +7,8 @@ import (
 	"github.com/wzulfikar/alfred/contracts"
 )
 
+var SecondsToTimeout time.Duration = 2
+
 type FinderChan struct {
 	finderName  string
 	itemsFound  int
@@ -14,21 +16,31 @@ type FinderChan struct {
 }
 
 func Find(query string, maxQueryResult int, finders *[]contracts.Finder) (*[]contracts.Result, error) {
+	log.Printf("executing `alfred.Find()` with %d finders. timeout: %ds",
+		len(*finders),
+		SecondsToTimeout)
 	now := time.Now()
 
+	timeoutChan := make(chan bool, 1)
 	finderChan := make(chan *FinderChan, len(*finders))
 	resultChan := make(chan contracts.Result)
+
+	go func() {
+		time.Sleep(SecondsToTimeout * time.Second)
+		timeoutChan <- true
+	}()
 
 	for i, finder := range *finders {
 		go func(i int, finder contracts.Finder, query string, resultChan chan contracts.Result) {
 			finderName := finder.FinderName()
-			log.Printf("fetching results from finder '%s'..", finderName)
+			log.Printf("fetching results from finder \"%s\"..", finderName)
 
 			start := time.Now()
 
 			result, err := finder.Find(query)
 			if err != nil {
-				log.Printf(`error fetching data from finder "%s": %s\n`, finderName, err)
+				log.Printf("[ERROR] fetching data from finder \"%s\": %s\n", finderName, err)
+				finderChan <- &FinderChan{finderName, 0, time.Since(start).String()}
 				return
 			}
 
@@ -42,14 +54,15 @@ func Find(query string, maxQueryResult int, finders *[]contracts.Finder) (*[]con
 
 	countFinder := 0
 	combinedResults := &[]contracts.Result{}
+	timeoutReached := false
 
 	// drain the resultChan
 	for {
-		if len(*combinedResults) >= maxQueryResult {
-			log.Printf("omitting query results due to limit (capped at %d items)\n", maxQueryResult)
+		if timeoutReached || countFinder == len(*finders) {
 			break
 		}
-		if countFinder == len(*finders) {
+		if len(*combinedResults) >= maxQueryResult {
+			log.Printf("omitting query results due to limit (capped at %d items)\n", maxQueryResult)
 			break
 		}
 
@@ -62,10 +75,15 @@ func Find(query string, maxQueryResult int, finders *[]contracts.Finder) (*[]con
 			*combinedResults = append(*combinedResults, result)
 		case v := <-finderChan:
 			countFinder++
-			log.Printf(`finder "%s" found %d items in %s. remaining finders: %d`,
+			log.Printf("finder \"%s\" found %d items in %s. remaining finders: %d",
 				v.finderName,
 				v.itemsFound,
 				v.elapsedTime,
+				len(*finders)-countFinder)
+		case <-timeoutChan:
+			timeoutReached = true
+			log.Printf("terminating finders due to %ds timeout. finders skipped: %d",
+				SecondsToTimeout,
 				len(*finders)-countFinder)
 		default:
 		}
