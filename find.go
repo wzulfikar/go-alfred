@@ -7,26 +7,36 @@ import (
 	"github.com/wzulfikar/alfred/contracts"
 )
 
+type FinderChan struct {
+	finderName  string
+	itemsFound  int
+	elapsedTime string
+}
+
 func Find(query string, maxQueryResult int, finders *[]contracts.Finder) (*[]contracts.Result, error) {
 	now := time.Now()
 
-	finderChan := make(chan string, len(*finders))
+	finderChan := make(chan *FinderChan, len(*finders))
 	resultChan := make(chan contracts.Result)
 
 	for i, finder := range *finders {
 		go func(i int, finder contracts.Finder, query string, resultChan chan contracts.Result) {
 			finderName := finder.FinderName()
+			log.Printf("fetching results from finder '%s'..", finderName)
+
+			start := time.Now()
+
 			result, err := finder.Find(query)
 			if err != nil {
 				log.Printf(`error fetching data from finder "%s": %s\n`, finderName, err)
 				return
 			}
 
-			log.Printf("%d data fetched from finder '%s'\n", len(*result), finderName)
 			for _, item := range *result {
 				resultChan <- item
 			}
-			finderChan <- finder.FinderName()
+
+			finderChan <- &FinderChan{finderName, len(*result), time.Since(start).String()}
 		}(i, finder, query, resultChan)
 	}
 
@@ -50,9 +60,13 @@ func Find(query string, maxQueryResult int, finders *[]contracts.Finder) (*[]con
 				(result).Description = "(No description)"
 			}
 			*combinedResults = append(*combinedResults, result)
-		case finderName := <-finderChan:
+		case v := <-finderChan:
 			countFinder++
-			log.Printf(`finder "%s" finished. remaining finders: %d`, finderName, len(*finders)-countFinder)
+			log.Printf(`finder "%s" found %d items in %s. remaining finders: %d`,
+				v.finderName,
+				v.itemsFound,
+				v.elapsedTime,
+				len(*finders)-countFinder)
 		default:
 		}
 	}
