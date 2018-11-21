@@ -14,11 +14,11 @@ type Alfred struct {
 	ResolveFindersFn func(alfred *Alfred, query *string) map[string]*contracts.Finder
 }
 
-func New(finders *[]contracts.Finder, resolveFindersFn func(alfred *Alfred, query *string) map[string]*contracts.Finder) (*Alfred, error) {
-	findersMap := make(map[string]*contracts.Finder, len(*finders))
+func New(finders []contracts.Finder, resolveFindersFn func(alfred *Alfred, query *string) map[string]*contracts.Finder) (*Alfred, error) {
+	findersMap := make(map[string]*contracts.Finder, len(finders))
 	var errs []error
-	for i := 0; i < len(*finders); i++ {
-		f := (*finders)[i]
+	for i := 0; i < len(finders); i++ {
+		f := (finders)[i]
 		if err := f.Init(); err != nil {
 			errs = append(errs, err)
 			continue

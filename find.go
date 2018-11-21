@@ -15,7 +15,7 @@ type finderChan struct {
 	elapsedTime string
 }
 
-func (alfred *Alfred) Find(query string, maxQueryResult int) (*[]contracts.Result, error) {
+func (alfred *Alfred) Find(query string, maxQueryResult int) ([]*contracts.Result, error) {
 	resultIds := make(map[string]bool)
 
 	var finders map[string]*contracts.Finder
@@ -33,7 +33,7 @@ func (alfred *Alfred) Find(query string, maxQueryResult int) (*[]contracts.Resul
 	now := time.Now()
 
 	timeoutChan := make(chan bool, 1)
-	resultChan := make(chan *contracts.Result)
+	resultChan := make(chan contracts.Result)
 	fChan := make(chan *finderChan, len(finders))
 
 	go func() {
@@ -42,7 +42,7 @@ func (alfred *Alfred) Find(query string, maxQueryResult int) (*[]contracts.Resul
 	}()
 
 	for finderName, finder := range finders {
-		go func(finderName string, finder contracts.Finder, query string, resultChan chan *contracts.Result) {
+		go func(finderName string, finder contracts.Finder, query string, resultChan chan contracts.Result) {
 			start := time.Now()
 
 			result, err := finder.Find(query)
@@ -53,7 +53,7 @@ func (alfred *Alfred) Find(query string, maxQueryResult int) (*[]contracts.Resul
 			}
 
 			for _, item := range *result {
-				resultChan <- &item
+				resultChan <- item
 			}
 
 			fChan <- &finderChan{finderName, len(*result), time.Since(start).String()}
@@ -61,7 +61,7 @@ func (alfred *Alfred) Find(query string, maxQueryResult int) (*[]contracts.Resul
 	}
 
 	countFinder := 0
-	combinedResults := &[]contracts.Result{}
+	combinedResults := []*contracts.Result{}
 	timeoutReached := false
 
 	// drain the resultChan
@@ -69,7 +69,7 @@ func (alfred *Alfred) Find(query string, maxQueryResult int) (*[]contracts.Resul
 		if timeoutReached || countFinder == len(finders) {
 			break
 		}
-		if len(*combinedResults) >= maxQueryResult {
+		if len(combinedResults) >= maxQueryResult {
 			log.Printf("omitting query results due to limit (capped at %d items)\n", maxQueryResult)
 			break
 		}
@@ -85,7 +85,7 @@ func (alfred *Alfred) Find(query string, maxQueryResult int) (*[]contracts.Resul
 			if (result).Description == "" {
 				(result).Description = "(No description)"
 			}
-			*combinedResults = append(*combinedResults, *result)
+			combinedResults = append(combinedResults, &result)
 			resultIds[result.ID] = true
 		case v := <-fChan:
 			countFinder++
@@ -106,7 +106,7 @@ func (alfred *Alfred) Find(query string, maxQueryResult int) (*[]contracts.Resul
 	log.Printf("[DONE] queried \"%s\" across %d finders. results found: %d. time elapsed: %s",
 		query,
 		len(finders),
-		len(*combinedResults),
+		len(combinedResults),
 		time.Since(now))
 
 	return combinedResults, nil
