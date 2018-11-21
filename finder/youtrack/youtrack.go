@@ -82,7 +82,7 @@ func (finder *YoutrackFinder) Find(query string) (*[]contracts.Result, error) {
 			issue.Summary)
 
 		r := contracts.Result{
-			ID:          issue.ID,
+			ID:          fmt.Sprintf("%s::%s", finderName, issue.ID),
 			Title:       title,
 			Description: issue.Description,
 			URL:         finder.issueUrl(issue.Project.ShortName, issue.NumberInProject),

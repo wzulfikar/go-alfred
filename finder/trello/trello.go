@@ -65,7 +65,7 @@ func (finder *TrelloFinder) Find(query string) (*[]contracts.Result, error) {
 	result := []contracts.Result{}
 	for _, card := range searchResult.Cards {
 		r := contracts.Result{
-			ID:          card.ID,
+			ID:          fmt.Sprintf("%s::%s", finderName, card.ID),
 			Title:       card.Name,
 			Description: card.Desc,
 			URL:         card.ShortURL,
