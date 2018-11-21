@@ -2,7 +2,6 @@ package alfred
 
 import (
 	"log"
-	"strings"
 	"time"
 
 	"github.com/wzulfikar/alfred/contracts"
@@ -17,20 +16,19 @@ type FinderChan struct {
 }
 
 func (alfred *Alfred) Find(query string, maxQueryResult int) (*[]contracts.Result, error) {
-	var finders map[string]contracts.Finder
-	if alfred.ResolveFindersFn != nil {
-		finders = *alfred.ResolveFindersFn(alfred, &query)
-	} else {
+	resultIds := make(map[string]bool)
+
+	var finders map[string]*contracts.Finder
+	if alfred.ResolveFindersFn == nil {
 		finders = alfred.Finders
+	} else {
+		finders = alfred.ResolveFindersFn(alfred, &query)
 	}
 
-	finderNames := []string{}
-	for finderName := range finders {
-		finderNames = append(finderNames, finderName)
-	}
-	log.Printf("executing `alfred.Find()` with %ds timeout. finders: %s",
+	log.Printf("executing `alfred.Find()` with %ds timeout. using %d finders: %v",
 		SecondsToTimeout,
-		strings.Join(finderNames, ", "))
+		len(finders),
+		finders)
 
 	now := time.Now()
 
@@ -59,7 +57,7 @@ func (alfred *Alfred) Find(query string, maxQueryResult int) (*[]contracts.Resul
 			}
 
 			finderChan <- &FinderChan{finderName, len(*result), time.Since(start).String()}
-		}(finderName, finder, query, resultChan)
+		}(finderName, *finder, query, resultChan)
 	}
 
 	countFinder := 0
@@ -79,10 +77,16 @@ func (alfred *Alfred) Find(query string, maxQueryResult int) (*[]contracts.Resul
 		// synchronize results
 		select {
 		case result := <-resultChan:
+			if resultIds[result.ID] {
+				// log.Println("skipped duplicate result id:", result.ID)
+				continue
+			}
+
 			if (result).Description == "" {
 				(result).Description = "(No description)"
 			}
 			*combinedResults = append(*combinedResults, result)
+			resultIds[result.ID] = true
 		case v := <-finderChan:
 			countFinder++
 			log.Printf("- finder \"%s\" found %d items in %s. remaining finders: %d",
