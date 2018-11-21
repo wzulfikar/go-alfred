@@ -6,7 +6,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/wzulfikar/alfred/contracts"
+	"github.com/wzulfikar/go-alfred/contracts"
 )
 
 type Alfred struct {

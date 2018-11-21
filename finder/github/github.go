@@ -10,8 +10,8 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
-	"github.com/wzulfikar/alfred/contracts"
-	"github.com/wzulfikar/alfred/util"
+	"github.com/wzulfikar/go-alfred/contracts"
+	"github.com/wzulfikar/go-alfred/util"
 	validator "gopkg.in/go-playground/validator.v9"
 )
 
