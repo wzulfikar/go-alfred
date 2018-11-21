@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/wzulfikar/alfred/contracts"
 	"github.com/wzulfikar/alfred/util"
+	validator "gopkg.in/go-playground/validator.v9"
 )
 
 const finderName = "trello_v1"
@@ -18,8 +19,18 @@ const baseUrl = "https://api.trello.com"
 const logoUrl = "http://logobucket.surge.sh/services/trello-logo-md.png"
 
 type TrelloFinder struct {
-	Key   string
-	Token string
+	Key   string `validate:"required"`
+	Token string `validate:"required"`
+}
+
+func (finder *TrelloFinder) Init() error {
+	validate := validator.New()
+	errs := validate.Struct(finder)
+	if errs != nil {
+		return errors.Wrap(errors.New(fmt.Sprintf("%s", errs)), finderName)
+	}
+
+	return nil
 }
 
 func (finder *TrelloFinder) FinderName() string {

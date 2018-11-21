@@ -1,3 +1,3 @@
 package youtrack
 
-type SearchResult = []Issue
+type SearchResult []Issue

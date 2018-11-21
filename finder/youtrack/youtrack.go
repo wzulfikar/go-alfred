@@ -11,14 +11,15 @@ import (
 	"github.com/pkg/errors"
 	"github.com/wzulfikar/alfred/contracts"
 	"github.com/wzulfikar/alfred/util"
+	validator "gopkg.in/go-playground/validator.v9"
 )
 
 const finderName = "youtrack_v1"
 const logo = "http://logobucket.surge.sh/services/youtrack-logo-md.png"
 
 type YoutrackFinder struct {
-	BaseUrl string
-	Token   string
+	BaseUrl string `validate:"required"`
+	Token   string `validate:"required"`
 	Fields  string
 }
 
@@ -30,6 +31,16 @@ func (finder *YoutrackFinder) FinderName() string {
 
 func (finder *YoutrackFinder) issueUrl(projectShortName string, numberInProject int) string {
 	return fmt.Sprintf("%s/issue/%s-%d", finder.BaseUrl, projectShortName, numberInProject)
+}
+
+func (finder *YoutrackFinder) Init() error {
+	validate := validator.New()
+	errs := validate.Struct(finder)
+	if errs != nil {
+		return errors.Wrap(errors.New(fmt.Sprintf("%s", errs)), finderName)
+	}
+
+	return nil
 }
 
 func (finder *YoutrackFinder) Find(query string) (*[]contracts.Result, error) {

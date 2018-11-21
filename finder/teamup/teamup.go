@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/wzulfikar/alfred/contracts"
 	"github.com/wzulfikar/alfred/util"
+	validator "gopkg.in/go-playground/validator.v9"
 )
 
 const finderName = "teamup_v1"
@@ -31,6 +32,16 @@ type TeamupFinder struct {
 //     log.Fatal("to continue, please fix the configuration and restart the program")
 //   }
 // }
+
+func (finder *TeamupFinder) Init() error {
+	validate := validator.New()
+	errs := validate.Struct(finder)
+	if errs != nil {
+		return errors.Wrap(errors.New(fmt.Sprintf("%s", errs)), finderName)
+	}
+
+	return nil
+}
 
 func (finder *TeamupFinder) FinderName() string {
 	return finderName

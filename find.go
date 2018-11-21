@@ -2,6 +2,7 @@ package alfred
 
 import (
 	"log"
+	"strings"
 	"time"
 
 	"github.com/wzulfikar/alfred/contracts"
@@ -15,14 +16,26 @@ type FinderChan struct {
 	elapsedTime string
 }
 
-func Find(query string, maxQueryResult int, finders *[]contracts.Finder) (*[]contracts.Result, error) {
-	log.Printf("executing `alfred.Find()` with %d finders. timeout: %ds",
-		len(*finders),
-		SecondsToTimeout)
+func (alfred *Alfred) Find(query string, maxQueryResult int) (*[]contracts.Result, error) {
+	var finders map[string]contracts.Finder
+	if alfred.ResolveFindersFn != nil {
+		finders = *alfred.ResolveFindersFn(alfred, &query)
+	} else {
+		finders = alfred.Finders
+	}
+
+	finderNames := []string{}
+	for finderName := range finders {
+		finderNames = append(finderNames, finderName)
+	}
+	log.Printf("executing `alfred.Find()` with %ds timeout. finders: %s",
+		SecondsToTimeout,
+		strings.Join(finderNames, ", "))
+
 	now := time.Now()
 
 	timeoutChan := make(chan bool, 1)
-	finderChan := make(chan *FinderChan, len(*finders))
+	finderChan := make(chan *FinderChan, len(finders))
 	resultChan := make(chan contracts.Result)
 
 	go func() {
@@ -30,11 +43,8 @@ func Find(query string, maxQueryResult int, finders *[]contracts.Finder) (*[]con
 		timeoutChan <- true
 	}()
 
-	for i, finder := range *finders {
-		go func(i int, finder contracts.Finder, query string, resultChan chan contracts.Result) {
-			finderName := finder.FinderName()
-			log.Printf("fetching results from finder \"%s\"..", finderName)
-
+	for finderName, finder := range finders {
+		go func(finderName string, finder contracts.Finder, query string, resultChan chan contracts.Result) {
 			start := time.Now()
 
 			result, err := finder.Find(query)
@@ -49,7 +59,7 @@ func Find(query string, maxQueryResult int, finders *[]contracts.Finder) (*[]con
 			}
 
 			finderChan <- &FinderChan{finderName, len(*result), time.Since(start).String()}
-		}(i, finder, query, resultChan)
+		}(finderName, finder, query, resultChan)
 	}
 
 	countFinder := 0
@@ -58,7 +68,7 @@ func Find(query string, maxQueryResult int, finders *[]contracts.Finder) (*[]con
 
 	// drain the resultChan
 	for {
-		if timeoutReached || countFinder == len(*finders) {
+		if timeoutReached || countFinder == len(finders) {
 			break
 		}
 		if len(*combinedResults) >= maxQueryResult {
@@ -75,16 +85,16 @@ func Find(query string, maxQueryResult int, finders *[]contracts.Finder) (*[]con
 			*combinedResults = append(*combinedResults, result)
 		case v := <-finderChan:
 			countFinder++
-			log.Printf("finder \"%s\" found %d items in %s. remaining finders: %d",
+			log.Printf("- finder \"%s\" found %d items in %s. remaining finders: %d",
 				v.finderName,
 				v.itemsFound,
 				v.elapsedTime,
-				len(*finders)-countFinder)
+				len(finders)-countFinder)
 		case <-timeoutChan:
 			timeoutReached = true
-			log.Printf("terminating finders due to %ds timeout. finders skipped: %d",
+			log.Printf("! terminating finders due to %ds timeout. finders skipped: %d",
 				SecondsToTimeout,
-				len(*finders)-countFinder)
+				len(finders)-countFinder)
 		default:
 		}
 	}
@@ -102,7 +112,7 @@ func Find(query string, maxQueryResult int, finders *[]contracts.Finder) (*[]con
 
 	log.Printf("[DONE] queried \"%s\" across %d finders. results found: %d. time elapsed: %s",
 		query,
-		len(*finders),
+		len(finders),
 		len(*combinedResults),
 		time.Since(now))
 
