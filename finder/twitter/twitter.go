@@ -18,8 +18,8 @@ const baseUrl = "https://api.trello.com"
 const logoUrl = "http://logobucket.surge.sh/services/trello-logo-md.png"
 
 type TrelloFinder struct {
-	Key   string
-	Token string
+	Key   string `validate:"required"`
+	Token string `validate:"required"`
 }
 
 func (finder *TrelloFinder) FinderName() string {
