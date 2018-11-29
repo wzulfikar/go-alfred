@@ -76,7 +76,7 @@ func (finder *GithubFinder) Find(query string) (*[]contracts.Result, error) {
 		r.Text = fmt.Sprintf("`Github Issue (submitted by %s)`\n*%s*\n%s\n\n––\nOpen issue in browser:\n%s",
 			item.User.Login,
 			r.Title,
-			util.Truncate(util.EscapeMarkdown(r.Description), "...\\[redacted]"),
+			util.TruncateWords(util.EscapeMarkdown(r.Description), "...\\[redacted]"),
 			r.URL)
 
 		result = append(result, r)

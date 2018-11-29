@@ -104,7 +104,7 @@ func (finder *YoutrackFinder) Find(query string) (*[]contracts.Result, error) {
 
 		r.Text = fmt.Sprintf("`Youtrack Issue`\n*%s*\n%s\n\n––\nOpen in browser:\n%s",
 			r.Title,
-			util.Truncate(util.EscapeMarkdown(r.Description), "...\\[redacted]"),
+			util.TruncateWords(util.EscapeMarkdown(r.Description), "...\\[redacted]"),
 			r.URL)
 
 		result = append(result, r)

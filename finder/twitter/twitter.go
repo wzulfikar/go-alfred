@@ -64,7 +64,7 @@ func (finder *TrelloFinder) Find(query string) (*[]contracts.Result, error) {
 
 		r.Text = fmt.Sprintf("*%s*\n%s\n\n––\nView in Trello:\n%s",
 			r.Title,
-			util.Truncate(util.EscapeMarkdown(r.Description), "...\\[redacted]"),
+			util.TruncateWords(util.EscapeMarkdown(r.Description), "...\\[redacted]"),
 			r.URL)
 
 		result = append(result, r)
